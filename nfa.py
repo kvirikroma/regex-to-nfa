@@ -1,6 +1,16 @@
 from typing import Dict, List
 from translator import parse_regexp
 from _io import TextIOWrapper
+from random import choice
+
+
+def generate_random_string(length: int) -> str:
+    letters = 'abcdefghijklmnopqrstuvwxyz'
+    symbols = list(letters + letters.upper())
+    result = []
+    for i in range(length):
+        result.append(choice(symbols))
+    return str().join(result)
 
 
 class State:
@@ -26,9 +36,9 @@ class State:
 
 class NFA:
     def __init__(self, regex: str):
+        regex = regex.replace("|", "+")
         self.alphabet = list(set(regex.replace("(", "").replace(")", "").replace("+", "").replace("*", "").replace("&", "")))
         self.alphabet.sort()
-        regex = regex.replace("|", "+")
         regex_items = regex.replace("(", ".").replace(")", ".").replace("+", ".").replace("*", ".").replace("&", ".").split('.')
         for item in regex_items:
             if len(item) >= 1:
@@ -64,7 +74,10 @@ class NFA:
                 if len(action.right) != 1:
                     self.delete_regulars(state)
             if action.operator.name == 'concat':
-                new_name = "operator&(" + action.left + "<=>" + action.right + ")"
+                while True:
+                    new_name = generate_random_string(5)
+                    if not self.map.get(new_name):
+                        break
                 self[new_name] = State(new_name)
                 self[new_name][action.right] = self[state][transition]
                 self[state][action.left] = new_name
@@ -74,8 +87,14 @@ class NFA:
                 if len(action.right) != 1:
                     self.delete_regulars(new_name)
             if action.operator.name == 'star':
-                new_name_left = "operator*(" + action.left + ")-left"
-                new_name_right = "operator*(" + action.left + ")-right"
+                while True:
+                    new_name_left = generate_random_string(5)
+                    if not self.map.get(new_name_left):
+                        break
+                while True:
+                    new_name_right = generate_random_string(5)
+                    if not self.map.get(new_name_right):
+                        break
                 self[new_name_left] = State(new_name_left, {action.left: new_name_right})
                 self[new_name_right] = State(new_name_right, dict(), [self[state][transition], new_name_left])
                 self[state].lambdas.append(self[state][transition])
@@ -87,7 +106,7 @@ class NFA:
     def to_file(self, file: TextIOWrapper, alphabet_file: TextIOWrapper):
         file.write("TRANSITIONS\n\n")
         for state in self.map:
-            file.write(state + '\t\t' + ('1' if state == 'end' else '0') + '\t')
+            file.write(state + '\t' + ('1' if state == 'end' else '0') + '\t')
             for letter in self.alphabet:
                 file.write((self[state][letter] if self[state].transitions.get(letter) else "null") + ' ')
             file.write('\n')
