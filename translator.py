@@ -67,7 +67,11 @@ def parts_to_action(regex_parts: List[str]) -> ParsedRegexp:
                 pass
     if operation == -1:
         raise ValueError("Cannot find operators in " + str().join(regex_parts))
-    return ParsedRegexp(str().join(regex_parts[:operation]), Operator(regex_parts[operation]), ''.join(regex_parts[(operation+1):]))
+    return ParsedRegexp(
+        str().join(regex_parts[:operation]),
+        Operator(regex_parts[operation]),
+        str().join(regex_parts[(operation+1):])
+    )
 
 
 def parse_regexp(regex: str) -> ParsedRegexp:

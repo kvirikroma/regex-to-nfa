@@ -12,13 +12,17 @@ def red(inp: str) -> str:
 
 
 if __name__ == "__main__":
-    #try:
-        nfa = NFA(input("Enter the regexp: "))
-        nfa.delete_regulars("$start")
-        file = open(input("Enter the file name for NFA config: "), "w")
-        alphabet_file = open(input("Enter the file name for alphabet: "), "w")
+    try:
+        try:
+            nfa = NFA(input("Enter the regexp: "))
+            nfa.delete_regulars("$start")
+            file = open("nfa-input.txt", "w")
+        except (KeyboardInterrupt, EOFError) as ex:
+            print()
+            exit()
+        alphabet_file = open("nfa-alphabet.txt", "w")
         nfa.to_file(file, alphabet_file)
         print(green("Success!"))
-    #except Exception as ex:
-    #    for arg in ex.args:
-    #        print(red(str(arg)))
+    except Exception as ex:
+        for arg in ex.args:
+            print(red(str(arg)))

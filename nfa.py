@@ -31,8 +31,11 @@ class NFA:
         regex = regex.replace("|", "+")
         regex_items = regex.replace("(", ".").replace(")", ".").replace("+", ".").replace("*", ".").replace("&", ".").split('.')
         for item in regex_items:
+            if len(item) >= 1:
+                regex = regex.replace('*'+item, "*&"+item)
             if len(item) >= 2:
                 regex = regex.replace(item, "&".join(item))
+        regex = regex.replace("*(", "*&(")
         self.map["$start"] = State("$start", {regex: "end"})
         self.alphabet = list(set(regex.replace("(", "").replace(")", "").replace("+", "").replace("*", "").replace("&", "")))
         self.alphabet.sort()
@@ -59,7 +62,7 @@ class NFA:
                 if len(action.right) != 1:
                     self.delete_regulars(state)
             if action.operator.name == 'concat':
-                new_name = "operator&(" + action.left + "," + action.right + ")"
+                new_name = "operator&(" + action.left + "<=>" + action.right + ")"
                 self[new_name] = State(new_name)
                 self[new_name][action.right] = self[state][transition]
                 self[state][action.left] = new_name
