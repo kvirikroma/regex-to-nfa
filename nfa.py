@@ -26,8 +26,8 @@ class State:
 
 class NFA:
     def __init__(self, regex: str):
-        self.map = dict()
-        self.map["end"] = State("end")
+        self.alphabet = list(set(regex.replace("(", "").replace(")", "").replace("+", "").replace("*", "").replace("&", "")))
+        self.alphabet.sort()
         regex = regex.replace("|", "+")
         regex_items = regex.replace("(", ".").replace(")", ".").replace("+", ".").replace("*", ".").replace("&", ".").split('.')
         for item in regex_items:
@@ -35,10 +35,12 @@ class NFA:
                 regex = regex.replace('*'+item, "*&"+item)
             if len(item) >= 2:
                 regex = regex.replace(item, "&".join(item))
-        regex = regex.replace("*(", "*&(")
+        regex = regex.replace("*(", "*&(").replace(")(", ")&(")
+        for letter in self.alphabet:
+            regex = regex.replace(letter+'(', letter+"&(").replace(')'+letter, ")&"+letter)
+        self.map = dict()
+        self.map["end"] = State("end")
         self.map["$start"] = State("$start", {regex: "end"})
-        self.alphabet = list(set(regex.replace("(", "").replace(")", "").replace("+", "").replace("*", "").replace("&", "")))
-        self.alphabet.sort()
 
     def __getitem__(self, item: str):
         return self.map[item]
