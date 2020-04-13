@@ -1,16 +1,15 @@
-from typing import Dict, List
+from typing import Dict, List, TextIO
 from translator import parse_regexp
-from _io import TextIOWrapper
 from random import choice
 
 
 def generate_random_string(length: int) -> str:
     letters = 'abcdefghijklmnopqrstuvwxyz'
-    symbols = list(letters + letters.upper())
-    result = []
+    letters += letters.upper()
+    result = str()
     for i in range(length):
-        result.append(choice(symbols))
-    return str().join(result)
+        result += choice(letters)
+    return result
 
 
 class State:
@@ -61,7 +60,7 @@ class NFA:
     def __delitem__(self, key):
         del self.map[key]
 
-    def delete_regulars(self, state: str):
+    def delete_regulars(self, state: str = "$start"):
         while self[state].contains_regex():
             transition = self[state].contains_regex()
             action = parse_regexp(transition)
@@ -103,7 +102,7 @@ class NFA:
                 if len(action.left) != 1:
                     self.delete_regulars(new_name_left)
 
-    def to_file(self, file: TextIOWrapper, alphabet_file: TextIOWrapper):
+    def to_file(self, file: TextIO, alphabet_file: TextIO):
         file.write("TRANSITIONS\n\n")
         for state in self.map:
             file.write(state + '\t' + ('1' if state == 'end' else '0') + '\t')

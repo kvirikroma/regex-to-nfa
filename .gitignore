@@ -1,2 +1,4 @@
 .idea
 __pycache__
+nfa-alphabet.txt
+nfa-input.txt

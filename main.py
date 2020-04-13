@@ -13,9 +13,10 @@ def red(inp: str) -> str:
 
 if __name__ == "__main__":
     try:
+        nfa = file = None
         try:
             nfa = NFA(input("Enter the regexp: "))
-            nfa.delete_regulars("$start")
+            nfa.delete_regulars()
             file = open("nfa-input.txt", "w")
         except (KeyboardInterrupt, EOFError) as ex:
             print()
