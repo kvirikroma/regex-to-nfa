@@ -1,4 +1,4 @@
-from typing import Dict, List, TextIO
+from typing import Dict, TextIO, Set
 from translator import parse_regexp
 from random import choice
 
@@ -13,15 +13,15 @@ def generate_random_string(length: int) -> str:
 
 
 class State:
-    def __init__(self, name: str, transitions: Dict[str, str] = None, lambdas: List[str] = None):
+    def __init__(self, name: str, transitions: Dict[str, Set[str]] = None, lambdas: Set[str] = None):
         self.name = name
         self.transitions = transitions if transitions else dict()
-        self.lambdas = lambdas if lambdas else list()
+        self.lambdas = lambdas if lambdas else set()
 
-    def __getitem__(self, item: str):
+    def __getitem__(self, item: str) -> Set[str]:
         return self.transitions[item]
 
-    def __setitem__(self, key: str, value: str):
+    def __setitem__(self, key: str, value: Set[str]):
         self.transitions[key] = value
 
     def __delitem__(self, key: str):
@@ -35,7 +35,7 @@ class State:
 
 class NFA:
     def __init__(self, regex: str):
-        regex = regex.replace("|", "+")
+        regex = regex.replace("|", "+").replace(" ", "")
         self.alphabet = list(set(regex.replace("(", "").replace(")", "").replace("+", "").replace("*", "").replace("&", "")))
         self.alphabet.sort()
         regex_items = regex.replace("(", ".").replace(")", ".").replace("+", ".").replace("*", ".").replace("&", ".").split('.')
@@ -49,9 +49,9 @@ class NFA:
             regex = regex.replace(letter+'(', letter+"&(").replace(')'+letter, ")&"+letter)
         self.map = dict()
         self.map["end"] = State("end")
-        self.map["$start"] = State("$start", {regex: "end"})
+        self.map["$start"] = State("$start", {regex: {"end"}})
 
-    def __getitem__(self, item: str):
+    def __getitem__(self, item: str) -> State:
         return self.map[item]
 
     def __setitem__(self, key: str, value: 'State'):
@@ -60,44 +60,54 @@ class NFA:
     def __delitem__(self, key):
         del self.map[key]
 
+    def generate_new_name(self):
+        while True:
+            new_name = generate_random_string(5)
+            if not self.map.get(new_name):
+                break
+        return new_name
+
     def delete_regulars(self, state: str = "$start"):
         while self[state].contains_regex():
             transition = self[state].contains_regex()
             action = parse_regexp(transition)
             if action.operator.name == 'union':
-                self[state][action.left] = self[state][transition]
-                self[state][action.right] = self[state][transition]
+                if not self[state].transitions.get(action.left):
+                    self[state][action.left] = set()
+                self[state][action.left].update(self[state][transition])
+                if not self[state].transitions.get(action.right):
+                    self[state][action.right] = set()
+                self[state][action.right].update(self[state][transition])
                 del self[state][transition]
                 if len(action.left) != 1:
                     self.delete_regulars(state)
                 if len(action.right) != 1:
                     self.delete_regulars(state)
             if action.operator.name == 'concat':
-                while True:
-                    new_name = generate_random_string(5)
-                    if not self.map.get(new_name):
-                        break
+                new_name = self.generate_new_name()
                 self[new_name] = State(new_name)
-                self[new_name][action.right] = self[state][transition]
-                self[state][action.left] = new_name
+                if not self[new_name].transitions.get(action.right):
+                    self[new_name][action.right] = set()
+                self[new_name][action.right].update(self[state][transition])
+                if not self[state].transitions.get(action.left):
+                    self[state][action.left] = set()
+                self[state][action.left].add(new_name)
                 del self[state][transition]
                 if len(action.left) != 1:
                     self.delete_regulars(state)
                 if len(action.right) != 1:
                     self.delete_regulars(new_name)
             if action.operator.name == 'star':
+                new_name_left = self.generate_new_name()
                 while True:
-                    new_name_left = generate_random_string(5)
-                    if not self.map.get(new_name_left):
+                    new_name_right = self.generate_new_name()
+                    if new_name_right != new_name_left:
                         break
-                while True:
-                    new_name_right = generate_random_string(5)
-                    if not self.map.get(new_name_right):
-                        break
-                self[new_name_left] = State(new_name_left, {action.left: new_name_right})
-                self[new_name_right] = State(new_name_right, dict(), [self[state][transition], new_name_left])
-                self[state].lambdas.append(self[state][transition])
-                self[state].lambdas.append(new_name_right)
+                self[new_name_left] = State(new_name_left, {action.left: {new_name_right}})
+                self[new_name_right] = State(new_name_right, dict(), {new_name_left})
+                self[new_name_right].lambdas.update(self[state][transition])
+                self[state].lambdas.update(self[state][transition])
+                self[state].lambdas.add(new_name_left)
                 del self[state][transition]
                 if len(action.left) != 1:
                     self.delete_regulars(new_name_left)
@@ -106,9 +116,16 @@ class NFA:
         file.write("TRANSITIONS\n\n")
         for state in self.map:
             file.write(state + '\t' + ('1' if state == 'end' else '0') + '\t')
+            string_to_append = str()
             for letter in self.alphabet:
-                file.write((self[state][letter] if self[state].transitions.get(letter) else "null") + ' ')
-            file.write('\n')
+                if self[state].transitions.get(letter):
+                    new_part = str(self[state][letter]).replace(',', '').replace("'", '')
+                else:
+                    new_part = "null"
+                if new_part.find(' ') == -1 and new_part.find('\t') == -1:
+                    new_part = new_part.rstrip('}').lstrip('{')
+                string_to_append += new_part + ' '
+            file.write(string_to_append.rstrip("null ") + '\n')
         file.write("\nLAMBDAS\n\n")
         for state in self.map:
             if not self[state].lambdas:

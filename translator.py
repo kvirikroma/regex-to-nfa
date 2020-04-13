@@ -21,6 +21,12 @@ class ParsedRegexp:
         self.operator = operator
         self.right = right
 
+    def __repr__(self):
+        return ("left: {0}" + "\naction: {1}" + "\nright: {2}").format(self.left, self.operator.name, str(self.right) or "None")
+
+    def __str__(self):
+        return self.__repr__()
+
 
 def regex_to_parts(regex: str) -> List[str]:
     regex_symbols = list(regex)
@@ -36,7 +42,6 @@ def regex_to_parts(regex: str) -> List[str]:
         if regex_symbols[i] == ')':
             depth -= 1
             if depth < 0:
-                print(regex)
                 raise ValueError("Invalid brackets detected")
             if depth == 0:
                 regexp_parts.append(regex[part_beginning:(i+1)])
@@ -66,7 +71,7 @@ def parts_to_action(regex_parts: List[str]) -> ParsedRegexp:
             except ValueError:
                 pass
     if operation == -1:
-        raise ValueError("Cannot find operators in " + str().join(regex_parts))
+        raise ValueError('Cannot find operators in "' + str().join(regex_parts) + '"')
     return ParsedRegexp(
         str().join(regex_parts[:operation]),
         Operator(regex_parts[operation]),

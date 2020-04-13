@@ -23,7 +23,7 @@ if __name__ == "__main__":
             exit()
         alphabet_file = open("nfa-alphabet.txt", "w")
         nfa.to_file(file, alphabet_file)
-        print(green("Success!"))
+        print(green("Success"))
     except Exception as ex:
         for arg in ex.args:
             print(red(str(arg)))
