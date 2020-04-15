@@ -39,9 +39,12 @@ class NFA:
         self.alphabet = list(set(regex.replace("(", "").replace(")", "").replace("+", "").replace("*", "").replace("&", "")))
         self.alphabet.sort()
         regex_items = regex.replace("(", ".").replace(")", ".").replace("+", ".").replace("*", ".").replace("&", ".").split('.')
+        regex_items.sort(key=len)
+        regex_items.reverse()
         for item in regex_items:
-            if len(item) >= 1:
-                regex = regex.replace('*'+item, "*&"+item)
+            if len(item) == 0:
+                break
+            regex = regex.replace('*'+item, "*&"+item)
             if len(item) >= 2:
                 regex = regex.replace(item, "&".join(item))
         regex = regex.replace("*(", "*&(").replace(")(", ")&(")
@@ -63,6 +66,8 @@ class NFA:
     def generate_new_name(self):
         while True:
             new_name = generate_random_string(5)
+            if new_name[-1] in "nul":
+                continue
             if not self.map.get(new_name):
                 break
         return new_name
